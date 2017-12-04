@@ -397,12 +397,40 @@ static ssize_t state_show(struct device *dev,
 	return sprintf(buf, "%s\n", state_str[mgr->state]);
 }
 
+static ssize_t load_store(struct device *dev,
+			  struct device_attribute *attr, const char *buf,
+			  size_t count)
+{
+	struct fpga_manager *mgr = to_fpga_manager(dev);
+	char *name;
+	int ret;
+
+	if (count > 0 && buf[count - 1] == '\n')
+		count--;
+
+	name = kstrndup(buf, count, GFP_KERNEL);
+	if (!name)
+		return -ENOSPC;
+
+	ret = fpga_mgr_firmware_load(mgr, NULL, name);
+	if (ret < 0) {
+		kfree(name);
+		return ret;
+	}
+
+	kfree(name);
+
+	return count;
+}
+
 static DEVICE_ATTR_RO(name);
 static DEVICE_ATTR_RO(state);
+static DEVICE_ATTR_WO(load);
 
 static struct attribute *fpga_mgr_attrs[] = {
 	&dev_attr_name.attr,
 	&dev_attr_state.attr,
+	&dev_attr_load.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(fpga_mgr);
