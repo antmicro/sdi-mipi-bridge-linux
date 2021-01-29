@@ -130,8 +130,7 @@
 			regulator-name = "en-vdd-cam";
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
-			gpio = <&gpio_i2c_0_77 9 1>;
-			enable-active-high;
+			regulator-always-on;
 		};
 
 		vdd_hdmi: regulator@3 {

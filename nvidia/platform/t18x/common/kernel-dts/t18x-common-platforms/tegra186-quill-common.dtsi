@@ -959,11 +959,13 @@
 		status = "okay";
 	};
 
+/*
 	xudc@3550000 {
 		extcon-cables = <&vbus_id_extcon 0>;
 		extcon-cable-names = "vbus";
 		#extcon-cells = <1>;
 	};
+*/
 
 #if TEGRA_XUSB_DT_VERSION >= DT_VERSION_2
 	xhci@3530000 {

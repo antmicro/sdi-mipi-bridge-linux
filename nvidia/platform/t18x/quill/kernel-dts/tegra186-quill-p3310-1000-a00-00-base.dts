@@ -188,19 +188,19 @@
 			usb2-0 {
 				status = "okay";
 				mode = "otg";
-				vbus-supply = <&vdd_usb0_5v>;
+				vbus-supply = <&vdd_5v_fixed>;
 				nvidia,oc-pin = <0>;
 			};
 			usb2-1 {
 				status = "okay";
 				mode = "host";
-				vbus-supply = <&vdd_usb1_5v>;
+				vbus-supply = <&vdd_5v_fixed>;
 				nvidia,oc-pin = <1>;
 			};
 			usb2-2 {
 				status = "okay";
 				mode = "host";
-				vbus-supply = <&vdd_usb2_5v>;
+				vbus-supply = <&vdd_5v_fixed>;
 			};
 			usb3-0 {
 				nvidia,usb2-companion = <2>;
