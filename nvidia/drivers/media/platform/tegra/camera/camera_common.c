@@ -979,7 +979,7 @@ int camera_common_initialize(struct camera_common_data *s_data,
 		const char *dev_name)
 {
 	int err = 0;
-	char debugfs_name[10];
+	//char debugfs_name[10];
 
 	if (s_data->dev == NULL)
 		return -EINVAL;
@@ -1005,10 +1005,12 @@ int camera_common_initialize(struct camera_common_data *s_data,
 		return err;
 	}
 
+	/*
 	sprintf(debugfs_name, "%s_%c", dev_name, s_data->csi_port + 'a');
 	dev_dbg(s_data->dev, "%s_probe: name %s\n", dev_name, debugfs_name);
 
 	camera_common_create_debugfs(s_data, debugfs_name);
+	*/
 
 	return 0;
 }
