@@ -10,3 +10,13 @@ config VIDEO_IMX204
 	  To compile this driver as a module, choose M here: the module
 	  will be called imx204.
 
+config VIDEO_GS2971A
+	tristate "Semtech GS2971A support"
+	depends on SPI && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	---help---
+	  This is a Video4Linux2 sensor-level driver for Semtech GS2971A
+	  deserializer.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called gs2971a.
+
