@@ -40,6 +40,11 @@ config FPGA_BRIDGE
 	  Say Y here if you want to support bridges connected between host
 	  processors and FPGAs or between FPGAs.
 
+config FPGA_MGR_CROSSLINK
+	tristate "Lattice Crosslink FPGA"
+	depends on OF && I2C
+	help
+	  FPGA manager driver support for Lattice CrossLink FPGAs over i2c.
 endif # FPGA
 
 endmenu
