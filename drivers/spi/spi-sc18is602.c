@@ -24,6 +24,7 @@
 #include <linux/of.h>
 #include <linux/platform_data/sc18is602.h>
 #include <linux/gpio/consumer.h>
+#include <linux/gpio.h>
 
 enum chips { sc18is602, sc18is602b, sc18is603 };
 
@@ -53,6 +54,11 @@ struct sc18is602 {
 	int			rindex;	/* Receive data index in buffer */
 
 	struct gpio_desc	*reset;
+
+	/* GPIO control */
+	bool cs_is_gpio[4];
+	struct gpio_chip gpio_chip;
+	bool gpio_state[4];
 };
 
 static int sc18is602_wait_ready(struct sc18is602 *hw, int len)
@@ -239,6 +245,43 @@ static int sc18is602_setup(struct spi_device *spi)
 	return 0;
 }
 
+static void sc18is602_gpio_set(struct gpio_chip *gc, unsigned int offset,
+			     int value)
+{
+	int i;
+	u8 val = 0x0;
+	struct sc18is602 *hw = gpiochip_get_data(gc);
+
+	hw->gpio_state[offset] = value;
+
+	for(i = 0; i < 4; i++)
+		if (hw->gpio_state[i])
+			val |= BIT(i);
+
+	i2c_smbus_write_byte_data(hw->client, 0xf4, val);
+}
+
+static int sc18is602_gpio_get(struct gpio_chip *gc, unsigned int offset)
+{
+	struct sc18is602 *hw = gpiochip_get_data(gc);
+
+	return hw->gpio_state[offset];
+}
+
+static int sc18is602_gpio_dir_output(struct gpio_chip *gc, unsigned int offset,
+				   int value)
+{
+	struct sc18is602 *hw = gpiochip_get_data(gc);
+	if (!hw->cs_is_gpio[offset]) {
+		pr_err("%d is not marked as GPIO!\n", offset);
+		return -EINVAL;
+	}
+	sc18is602_gpio_set(gc, offset, value);
+
+	return 0;
+}
+
+
 static int sc18is602_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
 {
@@ -247,7 +290,7 @@ static int sc18is602_probe(struct i2c_client *client,
 	struct sc18is602_platform_data *pdata = dev_get_platdata(dev);
 	struct sc18is602 *hw;
 	struct spi_master *master;
-	int error;
+	int ret;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C |
 				     I2C_FUNC_SMBUS_WRITE_BYTE_DATA))
@@ -304,15 +347,53 @@ static int sc18is602_probe(struct i2c_client *client,
 	master->min_speed_hz = hw->freq / 128;
 	master->max_speed_hz = hw->freq / 4;
 
-	error = devm_spi_register_master(dev, master);
-	if (error)
+	ret = devm_spi_register_master(dev, master);
+	if (ret)
 		goto error_reg;
+
+	if (of_get_property(np, "gpio-controller", NULL)) {
+		int i;
+		int num_gpios;
+		u8 cmd;
+		u32 cs_gpios[4];
+		of_property_read_u32_array(np, "nxp,spi-cs-as-gpios",
+				cs_gpios, 4);
+		for (i = 0; i < 4; i++)
+			if (cs_gpios[i]) {
+				dev_dbg(hw->dev, "use cs %d as GPIO\n", i);
+				hw->cs_is_gpio[i] = 1;
+				cmd |= BIT(i);
+				num_gpios++;
+			}
+
+		if (!num_gpios)
+			return 0;
+
+		ret = i2c_smbus_write_byte_data(hw->client, 0xf6, cmd);
+		if (ret < 0)
+			goto error_reg;
+
+		hw->gpio_chip.label = "sc18is602-gpio";
+		hw->gpio_chip.direction_output = sc18is602_gpio_dir_output;
+		hw->gpio_chip.set = sc18is602_gpio_set;
+		hw->gpio_chip.get = sc18is602_gpio_get;
+		hw->gpio_chip.ngpio = 4;
+		hw->gpio_chip.can_sleep = 1;
+		hw->gpio_chip.base = -1;
+		hw->gpio_chip.of_node = np;
+
+		ret = devm_gpiochip_add_data(hw->dev, &hw->gpio_chip, hw);
+		if (ret < 0) {
+			dev_err(hw->dev, "gpio_init: Failed to add SPI CS GPIO\n");
+			return ret;
+		}
+	}
 
 	return 0;
 
 error_reg:
 	spi_master_put(master);
-	return error;
+	return ret;
 }
 
 static const struct i2c_device_id sc18is602_id[] = {
