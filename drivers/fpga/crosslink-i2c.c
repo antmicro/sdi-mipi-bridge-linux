@@ -30,6 +30,7 @@ u8 isc_disable[]         = {0x26, 0x00, 0x00, 0x00};
 
 u8 idcode_pub[]          = {0xE0, 0x00, 0x00, 0x00};
 u8 read_usercode[]       = {0xC0, 0x00, 0x00, 0x00};
+u8 uidcode_pub[]         = {0x19, 0x00, 0x00, 0x00};
 
 u8 lsc_init[]            = {0x46, 0x00, 0x00, 0x00};
 u8 lsc_bitstream_burst[] = {0x7A, 0x00, 0x00, 0x00};
@@ -283,6 +284,7 @@ static int crosslink_fpga_probe(struct i2c_client *client, const struct i2c_devi
 	struct device *dev = &client->dev;
 	struct crosslink_fpga_priv *priv;
 	struct i2c_msg msg[2];
+	u64 traceid;
 	int ret;
 	int i;
 
@@ -314,6 +316,23 @@ static int crosslink_fpga_probe(struct i2c_client *client, const struct i2c_devi
 		dev_err(dev, "FPGA reset failed! (%d)\n", ret);
 		return ret;
 	}
+
+	memset(msg, 0, sizeof(msg));
+	msg[0].addr = client->addr;
+	msg[0].buf = uidcode_pub;
+	msg[0].len = ARRAY_SIZE(uidcode_pub);
+	msg[1].addr = client->addr;
+	msg[1].flags = I2C_M_RD;
+	msg[1].buf = (u8 *) &traceid;
+	msg[1].len = sizeof(traceid);
+
+	ret = i2c_transfer(client->adapter, msg, 2);
+	if (ret < 0) {
+		dev_err(&client->dev, "UIDCODE_PUB command failed! (%d)\n", ret);
+		return ret;
+	}
+
+	dev_info(&client->dev, "TraceID: 0x%llx\n", traceid);
 
 	/* Register with the FPGA manager */
 	return fpga_mgr_register(dev, "Lattice CrossLink FPGA Manager",
