@@ -404,11 +404,12 @@ static ssize_t load_store(struct device *dev,
 	struct fpga_manager *mgr = to_fpga_manager(dev);
 	char *name;
 	int ret;
+	int filename_len = count;
 
 	if (count > 0 && buf[count - 1] == '\n')
-		count--;
+		filename_len--;
 
-	name = kstrndup(buf, count, GFP_KERNEL);
+	name = kstrndup(buf, filename_len, GFP_KERNEL);
 	if (!name)
 		return -ENOSPC;
 
