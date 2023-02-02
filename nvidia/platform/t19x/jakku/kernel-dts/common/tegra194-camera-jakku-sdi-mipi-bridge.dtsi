@@ -67,8 +67,8 @@
 	};
 
 	i2c@3180000 {
-		pca9548: pca9548@70 {
-			compatible = "nxp,pca9548";
+		pca9547: pca9547@70 {
+			compatible = "nxp,pca9547";
 			status = "okay";
 			reg = <0x70>;
 			#address-cells = <1>;
