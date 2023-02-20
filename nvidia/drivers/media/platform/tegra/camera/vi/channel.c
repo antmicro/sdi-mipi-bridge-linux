@@ -282,7 +282,9 @@ static void tegra_channel_fmts_bitmap_init(struct tegra_channel *chan)
 {
 	int ret, pixel_format_index = 0, init_code = 0;
 	struct v4l2_subdev *subdev = chan->subdev_on_csi;
-	struct v4l2_subdev_format fmt = {};
+	struct v4l2_subdev_format fmt = {
+		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
+	};
 	struct v4l2_subdev_mbus_code_enum code = {
 		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
 	};
