@@ -28,6 +28,10 @@
 #include <linux/of.h>
 #include <linux/gpio/consumer.h>
 #include <linux/videodev2.h>
+
+#include <media/camera_common.h>
+#include <media/tegra-v4l2-camera.h>
+
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-device.h>
@@ -213,7 +217,7 @@ struct adv7180_chip_info {
 
 struct adv7180_state {
 	struct v4l2_ctrl_handler ctrl_hdl;
-	struct v4l2_subdev	sd;
+	struct v4l2_subdev	*sd;
 	struct media_pad	pad;
 	struct mutex		mutex; /* mutual excl. when accessing chip */
 	int			irq;
@@ -222,7 +226,7 @@ struct adv7180_state {
 	bool			powered;
 	bool			streaming;
 	u8			input;
-
+	struct camera_common_data	*s_data;
 	struct i2c_client	*client;
 	unsigned int		register_page;
 	struct i2c_client	*csi_client;
@@ -230,9 +234,6 @@ struct adv7180_state {
 	const struct adv7180_chip_info *chip_info;
 	enum v4l2_field		field;
 };
-#define to_adv7180_sd(_ctrl) (&container_of(_ctrl->handler,		\
-					    struct adv7180_state,	\
-					    ctrl_hdl)->sd)
 
 static int adv7180_select_page(struct adv7180_state *state, unsigned int page)
 {
@@ -353,14 +354,12 @@ static int __adv7180_status(struct adv7180_state *state, u32 *status,
 	return 0;
 }
 
-static inline struct adv7180_state *to_state(struct v4l2_subdev *sd)
-{
-	return container_of(sd, struct adv7180_state, sd);
-}
-
 static int adv7180_querystd(struct v4l2_subdev *sd, v4l2_std_id *std)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int err = mutex_lock_interruptible(&state->mutex);
 	if (err)
 		return err;
@@ -392,7 +391,10 @@ unlock:
 static int adv7180_s_routing(struct v4l2_subdev *sd, u32 input,
 			     u32 output, u32 config)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret = mutex_lock_interruptible(&state->mutex);
 
 	if (ret)
@@ -414,7 +416,10 @@ out:
 
 static int adv7180_g_input_status(struct v4l2_subdev *sd, u32 *status)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret = mutex_lock_interruptible(&state->mutex);
 	if (ret)
 		return ret;
@@ -440,7 +445,10 @@ static int adv7180_program_std(struct adv7180_state *state)
 
 static int adv7180_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret = mutex_lock_interruptible(&state->mutex);
 
 	if (ret)
@@ -461,7 +469,10 @@ out:
 
 static int adv7180_g_std(struct v4l2_subdev *sd, v4l2_std_id *norm)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	*norm = state->curr_norm;
 
@@ -471,7 +482,10 @@ static int adv7180_g_std(struct v4l2_subdev *sd, v4l2_std_id *norm)
 static int adv7180_g_frame_interval(struct v4l2_subdev *sd,
 				    struct v4l2_subdev_frame_interval *fi)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	if (state->curr_norm & V4L2_STD_525_60) {
 		fi->interval.numerator = 1001;
@@ -531,7 +545,10 @@ static int adv7180_set_power(struct adv7180_state *state, bool on)
 
 static int adv7180_s_power(struct v4l2_subdev *sd, int on)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret;
 
 	ret = mutex_lock_interruptible(&state->mutex);
@@ -548,8 +565,8 @@ static int adv7180_s_power(struct v4l2_subdev *sd, int on)
 
 static int adv7180_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct v4l2_subdev *sd = to_adv7180_sd(ctrl);
-	struct adv7180_state *state = to_state(sd);
+	struct adv7180_state *state =
+		container_of(ctrl->handler, struct adv7180_state, ctrl_hdl);
 	int ret = mutex_lock_interruptible(&state->mutex);
 	int val;
 
@@ -629,7 +646,7 @@ static int adv7180_init_controls(struct adv7180_state *state)
 			  ADV7180_HUE_MAX, 1, ADV7180_HUE_DEF);
 	v4l2_ctrl_new_custom(&state->ctrl_hdl, &adv7180_ctrl_fast_switch, NULL);
 
-	state->sd.ctrl_handler = &state->ctrl_hdl;
+	state->sd->ctrl_handler = &state->ctrl_hdl;
 	if (state->ctrl_hdl.error) {
 		int err = state->ctrl_hdl.error;
 
@@ -660,7 +677,10 @@ static int adv7180_enum_mbus_code(struct v4l2_subdev *sd,
 static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 			    struct v4l2_mbus_framefmt *fmt)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	fmt->code = MEDIA_BUS_FMT_UYVY8_2X8;
 	fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
@@ -715,25 +735,34 @@ static int adv7180_get_pad_format(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_pad_config *cfg,
 				  struct v4l2_subdev_format *format)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
+	int err;
 
 	if (format->which == V4L2_SUBDEV_FORMAT_TRY) {
-		format->format = *v4l2_subdev_get_try_format(sd, cfg, 0);
+		err = camera_common_g_fmt(sd, &format->format);
+		//format->format = *v4l2_subdev_get_try_format(sd, cfg, 0);
 	} else {
 		adv7180_mbus_fmt(sd, &format->format);
 		format->format.field = state->field;
 	}
 
-	return 0;
+	return err;
 }
 
 static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_pad_config *cfg,
 				  struct v4l2_subdev_format *format)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	struct v4l2_mbus_framefmt *framefmt;
 	int ret;
+
 
 	switch (format->format.field) {
 	case V4L2_FIELD_NONE:
@@ -755,7 +784,8 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 			adv7180_set_power(state, true);
 		}
 	} else {
-		framefmt = v4l2_subdev_get_try_format(sd, cfg, 0);
+		ret = camera_common_try_fmt(sd, &format->format);
+		//framefmt = v4l2_subdev_get_try_format(sd, cfg, 0);
 		*framefmt = format->format;
 	}
 
@@ -776,7 +806,10 @@ static int adv7180_init_cfg(struct v4l2_subdev *sd,
 static int adv7180_g_mbus_config(struct v4l2_subdev *sd,
 				 struct v4l2_mbus_config *cfg)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
 		cfg->type = V4L2_MBUS_CSI2;
@@ -805,7 +838,10 @@ static int adv7180_get_skip_frames(struct v4l2_subdev *sd, u32 *frames)
 
 static int adv7180_g_pixelaspect(struct v4l2_subdev *sd, struct v4l2_fract *aspect)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	if (state->curr_norm & V4L2_STD_525_60) {
 		aspect->numerator = 11;
@@ -826,7 +862,10 @@ static int adv7180_g_tvnorms(struct v4l2_subdev *sd, v4l2_std_id *norm)
 
 static int adv7180_s_stream(struct v4l2_subdev *sd, int enable)
 {
-	struct adv7180_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret;
 
 	/* It's always safe to stop streaming, no need to take the lock */
@@ -911,7 +950,7 @@ static irqreturn_t adv7180_irq(int irq, void *devid)
 			.u.src_change.changes = V4L2_EVENT_SRC_CH_RESOLUTION,
 		};
 
-		v4l2_subdev_notify_event(&state->sd, &src_ch);
+		v4l2_subdev_notify_event(state->sd, &src_ch);
 	}
 	mutex_unlock(&state->mutex);
 
@@ -1328,6 +1367,7 @@ static int adv7180_probe(struct i2c_client *client,
 {
 	struct adv7180_state *state;
 	struct v4l2_subdev *sd;
+	struct camera_common_data *common_data;
 	int ret;
 
 	/* Check if the adapter supports the needed features */
@@ -1336,6 +1376,10 @@ static int adv7180_probe(struct i2c_client *client,
 
 	state = devm_kzalloc(&client->dev, sizeof(*state), GFP_KERNEL);
 	if (state == NULL)
+		return -ENOMEM;
+
+	common_data = devm_kzalloc(&client->dev, sizeof(struct camera_common_data), GFP_KERNEL);
+	if (!common_data)
 		return -ENOMEM;
 
 	state->client = client;
@@ -1373,9 +1417,25 @@ static int adv7180_probe(struct i2c_client *client,
 		state->powered = true;
 	else
 		state->powered = false;
+
 	state->input = 0;
-	sd = &state->sd;
+
+	state->s_data = common_data;
+	state->sd = &common_data->subdev;
+
+	common_data->priv = state;
+	common_data->dev = &client->dev;
+	common_data->ctrl_handler = &state->ctrl_hdl;
+
+	ret = camera_common_initialize(common_data, "adv7282-m");
+	if (ret) {
+		v4l_err(client, "Failed to initialize tegra common!\n");
+		return ret;
+	}
+
+	sd = state->sd;
 	v4l2_i2c_subdev_init(sd, client, &adv7180_ops);
+
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 
 	ret = adv7180_init_controls(state);
@@ -1427,7 +1487,9 @@ err_unregister_csi_client:
 static int adv7180_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
-	struct adv7180_state *state = to_state(sd);
+	struct device *dev = &client->dev;
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	v4l2_async_unregister_subdev(sd);
 
@@ -1466,18 +1528,16 @@ MODULE_DEVICE_TABLE(i2c, adv7180_id);
 #ifdef CONFIG_PM_SLEEP
 static int adv7180_suspend(struct device *dev)
 {
-	struct i2c_client *client = to_i2c_client(dev);
-	struct v4l2_subdev *sd = i2c_get_clientdata(client);
-	struct adv7180_state *state = to_state(sd);
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
 	return adv7180_set_power(state, false);
 }
 
 static int adv7180_resume(struct device *dev)
 {
-	struct i2c_client *client = to_i2c_client(dev);
-	struct v4l2_subdev *sd = i2c_get_clientdata(client);
-	struct adv7180_state *state = to_state(sd);
+	struct camera_common_data *s_data = to_camera_common_data(dev);
+	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret;
 
 	ret = init_device(state);
