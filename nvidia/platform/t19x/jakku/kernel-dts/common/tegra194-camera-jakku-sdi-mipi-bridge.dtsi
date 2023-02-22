@@ -30,16 +30,16 @@
 				vi_port0: port@0 {
 					reg = <0>;
 					adv7282m_vi_in0: endpoint {
-						port-index = <0>;
-						bus-width = <2>;
+						port-index = <2>;
+						bus-width = <1>;
 						remote-endpoint = <&adv7282m_csi_out0>;
 					};
 				};
 				vi_port1: port@1 {
 					reg = <1>;
 					adv7282m_vi_in1: endpoint {
-						port-index = <4>;
-						bus-width = <2>;
+						port-index = <0>;
+						bus-width = <1>;
 						remote-endpoint = <&adv7282m_csi_out1>;
 					};
 				};
@@ -58,8 +58,8 @@
 					csi_chan0_port0: port@0 {
 						reg = <0>;
 						adv7282m_csi_in0: endpoint@0 {
-							port-index = <0>;
-							bus-width = <2>;
+							port-index = <2>;
+							bus-width = <1>;
 							remote-endpoint = <&adv7282m_out0>;
 						};
 					};
@@ -79,8 +79,8 @@
 					csi_chan1_port0: port@0 {
 						reg = <0>;
 						adv7282m_csi_in1: endpoint@2 {
-							port-index = <4>;
-							bus-width = <2>;
+							port-index = <0>;
+							bus-width = <1>;
 							remote-endpoint = <&adv7282m_out1>;
 						};
 					};
@@ -111,7 +111,7 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 
-				adv7180_cam0: adv7180_a@21 {
+				adv7180_cam0: adv7180_c@21 {
 					compatible = "adi,adv7282-m";
 					status = "okay";
 					reg = <0x21>;
@@ -125,16 +125,16 @@
 							reg = <0>;
 							adv7282m_out0: endpoint {
 								status = "okay";
-								port-index = <0>;
-								bus-width = <2>;
+								port-index = <2>;
+								bus-width = <1>;
 								remote-endpoint = <&adv7282m_csi_in0>;
 							};
 						};
 					};
 
 					mode0 {
-						num_lanes = "2";
-						tegra_sinterface = "serial_a";
+						num_lanes = "1";
+						tegra_sinterface = "serial_c";
 						discontinuous_clk = "no";
 						cil_settletime = "0";
 						embedded_metadata_height = "0";
@@ -177,7 +177,7 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 
-				adv7180_cam1: adv7180_c@21 {
+				adv7180_cam1: adv7180_a@21 {
 					compatible = "adi,adv7282-m";
 					status = "okay";
 					reg = <0x21>;
@@ -191,16 +191,16 @@
 							reg = <0>;
 							adv7282m_out1: endpoint {
 								status = "okay";
-								port-index = <4>;
-								bus-width = <2>;
+								port-index = <0>;
+								bus-width = <1>;
 								remote-endpoint = <&adv7282m_csi_in1>;
 							};
 						};
 					};
 
 					mode0 {
-						num_lanes = "2";
-						tegra_sinterface = "serial_c";
+						num_lanes = "1";
+						tegra_sinterface = "serial_a";
 						discontinuous_clk = "no";
 						cil_settletime = "0";
 						embedded_metadata_height = "0";
@@ -268,7 +268,7 @@
 		* isp_bw_margin_pct = <>;
 		* Isp bandwidth margin in percentage
 		*/
-		num_csi_lanes = <4>;
+		num_csi_lanes = <2>;
 		max_lane_speed = <1500000>;
 		min_bits_per_pixel = <10>;
 		vi_peak_byte_per_pixel = <2>;
@@ -294,7 +294,7 @@
 				drivernode0 {
 					pcl_id = "v4l2_sensor";
 					devname = "adv7282-m 30-0021";
-					proc-device-tree = "/proc/device-tree/i2c@3180000/pca9547@70/i2c@0/adv7180_a@21";
+					proc-device-tree = "/proc/device-tree/i2c@3180000/pca9547@70/i2c@0/adv7180_c@21";
 				};
 			};
 			module1 {
@@ -305,7 +305,7 @@
 				drivernode0 {
 					pcl_id = "v4l2_sensor";
 					devname = "adv7282-m 33-0021";
-					proc-device-tree = "/proc/device-tree/i2c@3180000/pca9547@70/i2c@3/adv7180_c@21";
+					proc-device-tree = "/proc/device-tree/i2c@3180000/pca9547@70/i2c@3/adv7180_a@21";
 				};
 			};
 		};
