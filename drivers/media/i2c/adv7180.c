@@ -682,6 +682,7 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 	struct camera_common_data *s_data = to_camera_common_data(dev);
 	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 
+	fmt->field = V4L2_FIELD_NONE;
 	fmt->code = MEDIA_BUS_FMT_UYVY8_2X8;
 	fmt->colorspace = V4L2_COLORSPACE_SMPTE170M;
 	fmt->width = 720;
@@ -760,9 +761,7 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 	struct device *dev = &client->dev;
 	struct camera_common_data *s_data = to_camera_common_data(dev);
 	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
-	struct v4l2_mbus_framefmt *framefmt;
 	int ret;
-
 
 	switch (format->format.field) {
 	case V4L2_FIELD_NONE:
@@ -774,7 +773,7 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 		break;
 	}
 
-	ret = adv7180_mbus_fmt(sd,  &format->format);
+	ret = adv7180_mbus_fmt(sd, &format->format);
 
 	if (format->which == V4L2_SUBDEV_FORMAT_ACTIVE) {
 		if (state->field != format->format.field) {
@@ -783,10 +782,8 @@ static int adv7180_set_pad_format(struct v4l2_subdev *sd,
 			adv7180_set_field_mode(state);
 			adv7180_set_power(state, true);
 		}
-	} else {
-		ret = camera_common_try_fmt(sd, &format->format);
-		//framefmt = v4l2_subdev_get_try_format(sd, cfg, 0);
-		*framefmt = format->format;
+	} else if (format->which == V4L2_SUBDEV_FORMAT_TRY) {
+		ret |= camera_common_try_fmt(sd, &format->format);
 	}
 
 	return ret;
