@@ -1025,11 +1025,15 @@ static int adv7182_init(struct adv7180_state *state)
 
 	adv7180_write(state, 0x0013, 0x00);
 
+	v4l_err(state->client, "Pass adv7182_init\n");
+
 	return 0;
 }
 
 static int adv7182_set_std(struct adv7180_state *state, unsigned int std)
 {
+	std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
+	v4l_err(state->client, "Set std: set reg: 0x%x: 0x%x\n", ADV7182_REG_INPUT_VIDSEL, std << 4);
 	return adv7180_write(state, ADV7182_REG_INPUT_VIDSEL, std << 4);
 }
 
@@ -1092,6 +1096,8 @@ static int adv7182_select_input(struct adv7180_state *state, unsigned int input)
 	unsigned int i;
 	int ret;
 
+	v4l_err(state->client, "Write to addr: 0x%x: %d\n", ADV7180_REG_INPUT_CONTROL, input);
+
 	ret = adv7180_write(state, ADV7180_REG_INPUT_CONTROL, input);
 	if (ret)
 		return ret;
@@ -1101,6 +1107,8 @@ static int adv7182_select_input(struct adv7180_state *state, unsigned int input)
 	adv7180_write(state, ADV7180_REG_RST_CLAMP, 0xff);
 
 	input_type = adv7182_get_input_type(input);
+
+	v4l_err(state->client, "Input type: 0x%x\n", input_type);
 
 	switch (input_type) {
 	case ADV7182_INPUT_TYPE_CVBS:
@@ -1287,18 +1295,7 @@ static const struct adv7180_chip_info adv7282_info = {
 
 static const struct adv7180_chip_info adv7282_m_info = {
 	.flags = ADV7180_FLAG_V2 | ADV7180_FLAG_MIPI_CSI2 | ADV7180_FLAG_I2P,
-	.valid_input_mask = BIT(ADV7182_INPUT_CVBS_AIN1) |
-		BIT(ADV7182_INPUT_CVBS_AIN2) |
-		BIT(ADV7182_INPUT_CVBS_AIN3) |
-		BIT(ADV7182_INPUT_CVBS_AIN4) |
-		BIT(ADV7182_INPUT_CVBS_AIN7) |
-		BIT(ADV7182_INPUT_CVBS_AIN8) |
-		BIT(ADV7182_INPUT_SVIDEO_AIN1_AIN2) |
-		BIT(ADV7182_INPUT_SVIDEO_AIN3_AIN4) |
-		BIT(ADV7182_INPUT_SVIDEO_AIN7_AIN8) |
-		BIT(ADV7182_INPUT_DIFF_CVBS_AIN1_AIN2) |
-		BIT(ADV7182_INPUT_DIFF_CVBS_AIN3_AIN4) |
-		BIT(ADV7182_INPUT_DIFF_CVBS_AIN7_AIN8),
+	.valid_input_mask = BIT(ADV7182_INPUT_CVBS_AIN1),
 	.init = adv7182_init,
 	.set_std = adv7182_set_std,
 	.select_input = adv7182_select_input,
