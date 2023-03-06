@@ -1074,7 +1074,8 @@ static int adv7180_select_input(struct adv7180_state *state, unsigned int input)
 
 static int adv7182_set_std(struct adv7180_state *state, unsigned int std)
 {
-	std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
+	//std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
+	std = ADV7180_STD_PAL_BG;
 	v4l_err(state->client, "Set std: 0x%x\n", std << 4);
 	return adv7180_write(state, ADV7182_REG_INPUT_VIDSEL, std << 4);
 }
@@ -1487,7 +1488,7 @@ static int adv7180_probe(struct i2c_client *client,
 
 	state->irq = client->irq;
 	mutex_init(&state->mutex);
-	state->curr_norm = V4L2_STD_NTSC;
+	state->curr_norm = V4L2_STD_PAL;  //V4L2_STD_NTSC;
 	if (state->chip_info->flags & ADV7180_FLAG_RESET_POWERED)
 		state->powered = true;
 	else
