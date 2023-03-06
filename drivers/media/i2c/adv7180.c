@@ -1072,48 +1072,6 @@ static int adv7180_select_input(struct adv7180_state *state, unsigned int input)
 	return adv7180_write(state, ADV7180_REG_INPUT_CONTROL, ret);
 }
 
-static int adv7182_init(struct adv7180_state *state)
-{
-	if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2)
-		adv7180_write(state, ADV7180_REG_CSI_SLAVE_ADDR,
-			ADV7180_DEFAULT_CSI_I2C_ADDR << 1);
-
-	if (state->chip_info->flags & ADV7180_FLAG_I2P)
-		adv7180_write(state, ADV7180_REG_VPP_SLAVE_ADDR,
-			ADV7180_DEFAULT_VPP_I2C_ADDR << 1);
-
-	if (state->chip_info->flags & ADV7180_FLAG_V2) {
-		/* ADI recommended writes for improved video quality */
-		adv7180_write(state, 0x0080, 0x51);
-		adv7180_write(state, 0x0081, 0x51);
-		adv7180_write(state, 0x0082, 0x68);
-	}
-
-	/* ADI required writes */
-	if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
-		adv7180_write(state, ADV7180_REG_OUTPUT_CONTROL, 0x4e);
-		adv7180_write(state, ADV7180_REG_EXTENDED_OUTPUT_CONTROL, 0x57);
-		adv7180_write(state, ADV7180_REG_CTRL_2, 0xc0);
-	} else {
-		if (state->chip_info->flags & ADV7180_FLAG_V2)
-			adv7180_write(state,
-				      ADV7180_REG_EXTENDED_OUTPUT_CONTROL,
-				      0x17);
-		else
-			adv7180_write(state,
-				      ADV7180_REG_EXTENDED_OUTPUT_CONTROL,
-				      0x07);
-		adv7180_write(state, ADV7180_REG_OUTPUT_CONTROL, 0x0c);
-		adv7180_write(state, ADV7180_REG_CTRL_2, 0x40);
-	}
-
-	adv7180_write(state, 0x0013, 0x00);
-
-	v4l_err(state->client, "Pass adv7182_init\n");
-
-	return 0;
-}
-
 static int adv7182_set_std(struct adv7180_state *state, unsigned int std)
 {
 	//std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
@@ -1180,8 +1138,6 @@ static int adv7182_select_input(struct adv7180_state *state, unsigned int input)
 	unsigned int i;
 	int ret;
 
-	v4l_err(state->client, "Write to addr: 0x%x: %d\n", ADV7180_REG_INPUT_CONTROL, input);
-
 	ret = adv7180_write(state, ADV7180_REG_INPUT_CONTROL, input);
 	if (ret)
 		return ret;
@@ -1191,8 +1147,6 @@ static int adv7182_select_input(struct adv7180_state *state, unsigned int input)
 	adv7180_write(state, ADV7180_REG_RST_CLAMP, 0xff);
 
 	input_type = adv7182_get_input_type(input);
-
-	v4l_err(state->client, "Input type: 0x%x\n", input_type);
 
 	switch (input_type) {
 	case ADV7182_INPUT_TYPE_CVBS:
@@ -1227,6 +1181,49 @@ static int adv7182_select_input(struct adv7180_state *state, unsigned int input)
 		adv7180_write(state, ADV7180_REG_AGC_ADJ1, 0x9c);
 		adv7180_write(state, ADV7180_REG_AGC_ADJ2, 0x00);
 	}
+
+	return 0;
+}
+
+static int adv7182_init(struct adv7180_state *state)
+{
+	if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2)
+		adv7180_write(state, ADV7180_REG_CSI_SLAVE_ADDR,
+			ADV7180_DEFAULT_CSI_I2C_ADDR << 1);
+
+	if (state->chip_info->flags & ADV7180_FLAG_I2P)
+		adv7180_write(state, ADV7180_REG_VPP_SLAVE_ADDR,
+			ADV7180_DEFAULT_VPP_I2C_ADDR << 1);
+
+	if (state->chip_info->flags & ADV7180_FLAG_V2) {
+		/* ADI recommended writes for improved video quality */
+		adv7180_write(state, 0x0080, 0x51);
+		adv7180_write(state, 0x0081, 0x51);
+		adv7180_write(state, 0x0082, 0x68);
+	}
+
+	/* ADI required writes */
+	if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
+		adv7180_write(state, ADV7180_REG_OUTPUT_CONTROL, 0x4e);
+		adv7180_write(state, ADV7180_REG_EXTENDED_OUTPUT_CONTROL, 0x57);
+		adv7180_write(state, ADV7180_REG_CTRL_2, 0xc0);
+	} else {
+		if (state->chip_info->flags & ADV7180_FLAG_V2)
+			adv7180_write(state,
+				      ADV7180_REG_EXTENDED_OUTPUT_CONTROL,
+				      0x17);
+		else
+			adv7180_write(state,
+				      ADV7180_REG_EXTENDED_OUTPUT_CONTROL,
+				      0x07);
+		adv7180_write(state, ADV7180_REG_OUTPUT_CONTROL, 0x0c);
+		adv7180_write(state, ADV7180_REG_CTRL_2, 0x40);
+	}
+
+	adv7180_write(state, 0x0013, 0x00);
+
+	adv7182_select_input(state, ADV7182_INPUT_CVBS_AIN1);
+	v4l_err(state->client, "Pass adv7182_init\n");
 
 	return 0;
 }
