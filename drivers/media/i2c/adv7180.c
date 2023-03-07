@@ -117,6 +117,8 @@
 #define ADV7180_REG_LOCK_CNT		0x0051
 #define ADV7180_REG_CVBS_TRIM		0x0052
 #define ADV7180_REG_CLAMP_ADJ		0x005a
+#define ADV7180_REG_I2C_DEINT_ENABLE	0x0055
+#define ADV7180_REG_ADV_TIMING_MODE_EN	0x005b
 #define ADV7180_REG_RES_CIR		0x005f
 #define ADV7180_REG_DIFF_MODE		0x0060
 
@@ -711,8 +713,8 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 			adv7180_csi_write(state, 0x08, 0x50);
 		}
 		adv7180_vpp_write(state, 0xa3, 0x00);
-		adv7180_vpp_write(state, 0x5b, 0x00);
-		adv7180_vpp_write(state, 0x55, 0x80);
+		adv7180_vpp_write(state, ADV7180_REG_ADV_TIMING_MODE_EN, 0x00);
+		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x80);
 	} else {
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
 			adv7180_csi_write(state, 0x01, 0x18);
@@ -725,8 +727,8 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 			adv7180_csi_write(state, 0x08, 0x30);
 		}
 		adv7180_vpp_write(state, 0xa3, 0x70);
-		adv7180_vpp_write(state, 0x5b, 0x80);
-		adv7180_vpp_write(state, 0x55, 0x00);
+		adv7180_vpp_write(state, ADV7180_REG_ADV_TIMING_MODE_EN, 0x80);
+		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x00);
 	}
 
 	return 0;
@@ -864,11 +866,11 @@ static int adv7182_dump_regs(struct adv7180_state *state)
 
 	unsigned int regs[] = {
 		ADV7180_REG_INPUT_CONTROL,
-		0x0001,
 		ADV7182_REG_INPUT_VIDSEL,
 		ADV7180_REG_OUTPUT_CONTROL,
 		ADV7180_REG_EXTENDED_OUTPUT_CONTROL,
 		ADV7180_REG_AUTODETECT_ENABLE,
+		/*
 		ADV7180_REG_CON,
 		ADV7180_REG_BRI,
 		ADV7180_REG_HUE,
@@ -876,11 +878,11 @@ static int adv7182_dump_regs(struct adv7180_state *state)
 		0x000d,
 		ADV7180_REG_CTRL,
 		ADV7180_REG_PWR_MAN,
+		*/
 		ADV7180_REG_STATUS1,
 		ADV7180_REG_IDENT,
-		0x0012,
 		ADV7180_REG_STATUS3,
-	/*
+		/*
 		ADV7180_REG_ANALOG_CLAMP_CTL,
 		0x0015,
 		ADV7180_REG_SHAP_FILTER_CTL_1,
@@ -914,6 +916,10 @@ static int adv7182_dump_regs(struct adv7180_state *state)
 		ADV7180_REG_LOCK_CNT,
 		ADV7180_REG_CVBS_TRIM,
 		ADV7180_REG_CLAMP_ADJ,
+		*/
+		ADV7180_REG_I2C_DEINT_ENABLE,
+		ADV7180_REG_ADV_TIMING_MODE_EN,
+		/*
 		0x0059,
 		0x005d,
 		0x005e,
@@ -926,9 +932,9 @@ static int adv7182_dump_regs(struct adv7180_state *state)
 		ADV7180_REG_SD_SAT_CB,
 		ADV7180_REG_SD_SAT_CR,
 		ADV7180_REG_NTSC_V_BIT_END,
+		*/
 		ADV7180_REG_VPP_SLAVE_ADDR,
 		ADV7180_REG_CSI_SLAVE_ADDR,
-	*/
 	};
 	const size_t regs_size = sizeof(regs)/sizeof(regs[0]);
 
