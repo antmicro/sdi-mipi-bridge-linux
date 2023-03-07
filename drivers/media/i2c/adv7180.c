@@ -698,11 +698,17 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 
 static int adv7180_set_field_mode(struct adv7180_state *state)
 {
-	if (!(state->chip_info->flags & ADV7180_FLAG_I2P))
+	v4l_err(state->client, "Set field mode\n");
+
+	if (!(state->chip_info->flags & ADV7180_FLAG_I2P)) {
+		v4l_err(state->client, "Flag I2P is not set\n");
 		return 0;
+	}
 
 	if (state->field == V4L2_FIELD_NONE) {
+		v4l_err(state->client, "Flag V4L2_FIELD_NONE is set\n");
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
+			v4l_err(state->client, "Flag ADV7180_FLAG_MIPI_CSI2 is set\n");
 			adv7180_csi_write(state, 0x01, 0x20);
 			adv7180_csi_write(state, 0x02, 0x28);
 			adv7180_csi_write(state, 0x03, 0x38);
@@ -716,7 +722,9 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, ADV7180_REG_ADV_TIMING_MODE_EN, 0x00);
 		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x80);
 	} else {
+		v4l_err(state->client, "Flag V4L2_FIELD_NONE is not set\n");
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
+			v4l_err(state->client, "Flag ADV7180_FLAG_MIPI_CSI2 is set\n");
 			adv7180_csi_write(state, 0x01, 0x18);
 			adv7180_csi_write(state, 0x02, 0x18);
 			adv7180_csi_write(state, 0x03, 0x30);
@@ -730,6 +738,8 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, ADV7180_REG_ADV_TIMING_MODE_EN, 0x80);
 		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x00);
 	}
+
+	v4l_err(state->client, "Set field mode - end\n");
 
 	return 0;
 }
@@ -1466,7 +1476,8 @@ static int adv7180_probe(struct i2c_client *client,
 
 	state->client = client;
 	state->field = V4L2_FIELD_ALTERNATE;
-	state->chip_info = (struct adv7180_chip_info *)id->driver_data;
+	state->chip_info = &adv7282_m_info;
+	//state->chip_info = (struct adv7180_chip_info *)id->driver_data;
 
 	state->pwdn_gpio = devm_gpiod_get_optional(&client->dev, "powerdown",
 						   GPIOD_OUT_HIGH);
