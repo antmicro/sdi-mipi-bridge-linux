@@ -348,6 +348,8 @@ static int __adv7180_status(struct adv7180_state *state, u32 *status,
 	if (status1 < 0)
 		return status1;
 
+	v4l_info(state->client, "Reg status1: 0x%x\n", status1);
+
 	if (status)
 		*status = adv7180_status_to_v4l2(status1);
 	if (std)
@@ -722,9 +724,7 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, ADV7180_REG_ADV_TIMING_MODE_EN, 0x00);
 		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x80);
 	} else {
-		v4l_err(state->client, "Flag V4L2_FIELD_NONE is not set\n");
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
-			v4l_err(state->client, "Flag ADV7180_FLAG_MIPI_CSI2 is set\n");
 			adv7180_csi_write(state, 0x01, 0x18);
 			adv7180_csi_write(state, 0x02, 0x18);
 			adv7180_csi_write(state, 0x03, 0x30);
@@ -738,8 +738,6 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, ADV7180_REG_ADV_TIMING_MODE_EN, 0x80);
 		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x00);
 	}
-
-	v4l_err(state->client, "Set field mode - end\n");
 
 	return 0;
 }
