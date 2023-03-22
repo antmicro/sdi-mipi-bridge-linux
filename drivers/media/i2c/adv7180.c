@@ -1088,8 +1088,7 @@ static int adv7180_select_input(struct adv7180_state *state, unsigned int input)
 
 static int adv7182_set_std(struct adv7180_state *state, unsigned int std)
 {
-	//std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
-	std = ADV7180_STD_PAL_BG;
+	std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
 	v4l_err(state->client, "Set std: 0x%x\n", std << 4);
 	return adv7180_write(state, ADV7182_REG_INPUT_VIDSEL, std << 4);
 }
