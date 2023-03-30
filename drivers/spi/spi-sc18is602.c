@@ -349,7 +349,7 @@ static int sc18is602_probe(struct i2c_client *client,
 
 	ret = devm_spi_register_master(dev, master);
 	if (ret)
-		goto error_reg;
+		return ret;
 
 	if (of_get_property(np, "gpio-controller", NULL)) {
 		int i;
@@ -371,7 +371,7 @@ static int sc18is602_probe(struct i2c_client *client,
 
 		ret = i2c_smbus_write_byte_data(hw->client, 0xf6, cmd);
 		if (ret < 0)
-			goto error_reg;
+			return ret;
 
 		hw->gpio_chip.label = "sc18is602-gpio";
 		hw->gpio_chip.direction_output = sc18is602_gpio_dir_output;
@@ -390,10 +390,6 @@ static int sc18is602_probe(struct i2c_client *client,
 	}
 
 	return 0;
-
-error_reg:
-	spi_master_put(master);
-	return ret;
 }
 
 static const struct i2c_device_id sc18is602_id[] = {
