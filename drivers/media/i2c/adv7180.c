@@ -340,6 +340,42 @@ static u32 adv7180_status_to_v4l2(u8 status1)
 	return 0;
 }
 
+static int adv7182_dump_status(struct adv7180_state *state, int status_val)
+{
+	int autodetection_res = (status_val & 0x70) >> 4;
+
+	switch(autodetection_res) {
+	case 0x0:
+		v4l_info(state->client, "Detected: NTSC M/NTSC J");
+		break;
+	case 0x1:
+		v4l_info(state->client, "Detected: NTSC 4.43");
+		break;
+	case 0x2:
+		v4l_info(state->client, "Detected: PAL M");
+		break;
+	case 0x3:
+		v4l_info(state->client, "Detected: PAL 60");
+		break;
+	case 0x4:
+		v4l_info(state->client, "Detected: PAL B/PAL G/PAL H/PAL I/PAL D");
+		break;
+	case 0x5:
+		v4l_info(state->client, "Detected: SECAM");
+		break;
+	case 0x6:
+		v4l_info(state->client, "Detected: PAL Combination N");
+		break;
+	case 0x7:
+		v4l_info(state->client, "Detected: SECAM 525");
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int __adv7180_status(struct adv7180_state *state, u32 *status,
 			    v4l2_std_id *std)
 {
@@ -349,6 +385,7 @@ static int __adv7180_status(struct adv7180_state *state, u32 *status,
 		return status1;
 
 	v4l_info(state->client, "Reg status1: 0x%x\n", status1);
+	adv7182_dump_status(state, status1);
 
 	if (status)
 		*status = adv7180_status_to_v4l2(status1);
@@ -864,92 +901,6 @@ static int adv7180_g_tvnorms(struct v4l2_subdev *sd, v4l2_std_id *norm)
 	return 0;
 }
 
-static int adv7182_dump_regs(struct adv7180_state *state)
-{
-	int idx = 0;
-	int ret = 0;
-
-	unsigned int regs[] = {
-		ADV7180_REG_INPUT_CONTROL,
-		ADV7182_REG_INPUT_VIDSEL,
-		ADV7180_REG_OUTPUT_CONTROL,
-		ADV7180_REG_EXTENDED_OUTPUT_CONTROL,
-		ADV7180_REG_AUTODETECT_ENABLE,
-		/*
-		ADV7180_REG_CON,
-		ADV7180_REG_BRI,
-		ADV7180_REG_HUE,
-		0x000c,
-		0x000d,
-		ADV7180_REG_CTRL,
-		ADV7180_REG_PWR_MAN,
-		*/
-		ADV7180_REG_STATUS1,
-		ADV7180_REG_IDENT,
-		ADV7180_REG_STATUS3,
-		/*
-		ADV7180_REG_ANALOG_CLAMP_CTL,
-		0x0015,
-		ADV7180_REG_SHAP_FILTER_CTL_1,
-		0x0018,
-		0x0019,
-		ADV7180_REG_CTRL_2,
-		0x0027,
-		0x002b,
-		0x002c,
-		0x002d,
-		0x002e,
-		0x002f,
-		0x0030,
-		ADV7180_REG_VSYNC_FIELD_CTL_1,
-		0x0032,
-		0x0033,
-		0x0034,
-		0x0035,
-		0x0036,
-		0x0037,
-		0x0038,
-		0x0039,
-		0x003a,
-		ADV7180_REG_MANUAL_WIN_CTL_1,
-		ADV7180_REG_MANUAL_WIN_CTL_2,
-		ADV7180_REG_MANUAL_WIN_CTL_3,
-		0x0041,
-		0x004D,
-		0x004E,
-		0x0050,
-		ADV7180_REG_LOCK_CNT,
-		ADV7180_REG_CVBS_TRIM,
-		ADV7180_REG_CLAMP_ADJ,
-		*/
-		ADV7180_REG_I2C_DEINT_ENABLE,
-		ADV7180_REG_ADV_TIMING_MODE_EN,
-		/*
-		0x0059,
-		0x005d,
-		0x005e,
-		ADV7180_REG_RES_CIR,
-		ADV7180_REG_DIFF_MODE,
-		0x006A,
-		0x006B,
-		0x00C3,
-		0x00C4,
-		ADV7180_REG_SD_SAT_CB,
-		ADV7180_REG_SD_SAT_CR,
-		ADV7180_REG_NTSC_V_BIT_END,
-		*/
-		ADV7180_REG_VPP_SLAVE_ADDR,
-		ADV7180_REG_CSI_SLAVE_ADDR,
-	};
-	const size_t regs_size = sizeof(regs)/sizeof(regs[0]);
-
-	for (idx = 0; idx < regs_size; idx++) {
-		ret = adv7180_read(state, regs[idx]);
-		v4l_err(state->client, "Reg: 0x%x, val: 0x%x\n", regs[idx], ret);
-	}
-	return 0;
-}
-
 static int adv7180_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
@@ -957,8 +908,6 @@ static int adv7180_s_stream(struct v4l2_subdev *sd, int enable)
 	struct camera_common_data *s_data = to_camera_common_data(dev);
 	struct adv7180_state *state = (struct adv7180_state *)s_data->priv;
 	int ret;
-
-	adv7182_dump_regs(state);
 
 	/* It's always safe to stop streaming, no need to take the lock */
 	if (!enable) {
