@@ -734,17 +734,15 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 
 static int adv7180_set_field_mode(struct adv7180_state *state)
 {
-	v4l_err(state->client, "Set field mode\n");
-
 	if (!(state->chip_info->flags & ADV7180_FLAG_I2P)) {
-		v4l_err(state->client, "Flag I2P is not set\n");
+		v4l_info(state->client, "Flag I2P is not set\n");
 		return 0;
 	}
 
 	if (state->field == V4L2_FIELD_NONE) {
-		v4l_err(state->client, "Flag V4L2_FIELD_NONE is set\n");
+		v4l_info(state->client, "Flag V4L2_FIELD_NONE is set\n");
 		if (state->chip_info->flags & ADV7180_FLAG_MIPI_CSI2) {
-			v4l_err(state->client, "Flag ADV7180_FLAG_MIPI_CSI2 is set\n");
+			v4l_info(state->client, "Flag ADV7180_FLAG_MIPI_CSI2 is set\n");
 			adv7180_csi_write(state, 0x01, 0x20);
 			adv7180_csi_write(state, 0x02, 0x28);
 			adv7180_csi_write(state, 0x03, 0x38);
