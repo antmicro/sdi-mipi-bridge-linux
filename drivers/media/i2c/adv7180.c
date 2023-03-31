@@ -281,7 +281,7 @@ static int adv7180_vpp_write(struct adv7180_state *state, unsigned int reg,
 	return i2c_smbus_write_byte_data(state->vpp_client, reg, value);
 }
 
-static v4l2_std_id adv7180_std_to_v4l2(u8 status1)
+static v4l2_std_id adv7180_std_to_v4l2(struct adv7180_state *state, u8 status1)
 {
 	/* in case V4L2_IN_ST_NO_SIGNAL */
 	if (!(status1 & ADV7180_STATUS1_IN_LOCK))
@@ -289,20 +289,28 @@ static v4l2_std_id adv7180_std_to_v4l2(u8 status1)
 
 	switch (status1 & ADV7180_STATUS1_AUTOD_MASK) {
 	case ADV7180_STATUS1_AUTOD_NTSM_M_J:
+		v4l_info(state->client, "Detected: NTSC M/NTSC J");
 		return V4L2_STD_NTSC;
 	case ADV7180_STATUS1_AUTOD_NTSC_4_43:
+		v4l_info(state->client, "Detected: NTSC 4.43");
 		return V4L2_STD_NTSC_443;
 	case ADV7180_STATUS1_AUTOD_PAL_M:
+		v4l_info(state->client, "Detected: PAL M");
 		return V4L2_STD_PAL_M;
 	case ADV7180_STATUS1_AUTOD_PAL_60:
+		v4l_info(state->client, "Detected: PAL 60");
 		return V4L2_STD_PAL_60;
 	case ADV7180_STATUS1_AUTOD_PAL_B_G:
+		v4l_info(state->client, "Detected: PAL B/PAL G/PAL H/PAL I/PAL D");
 		return V4L2_STD_PAL;
 	case ADV7180_STATUS1_AUTOD_SECAM:
+		v4l_info(state->client, "Detected: SECAM");
 		return V4L2_STD_SECAM;
 	case ADV7180_STATUS1_AUTOD_PAL_COMB:
+		v4l_info(state->client, "Detected: PAL Combination N");
 		return V4L2_STD_PAL_Nc | V4L2_STD_PAL_N;
 	case ADV7180_STATUS1_AUTOD_SECAM_525:
+		v4l_info(state->client, "Detected: SECAM 525");
 		return V4L2_STD_SECAM;
 	default:
 		return V4L2_STD_UNKNOWN;
@@ -340,57 +348,27 @@ static u32 adv7180_status_to_v4l2(u8 status1)
 	return 0;
 }
 
-static int adv7182_dump_status(struct adv7180_state *state, int status_val)
-{
-	int autodetection_res = (status_val & 0x70) >> 4;
-
-	switch(autodetection_res) {
-	case 0x0:
-		v4l_info(state->client, "Detected: NTSC M/NTSC J");
-		break;
-	case 0x1:
-		v4l_info(state->client, "Detected: NTSC 4.43");
-		break;
-	case 0x2:
-		v4l_info(state->client, "Detected: PAL M");
-		break;
-	case 0x3:
-		v4l_info(state->client, "Detected: PAL 60");
-		break;
-	case 0x4:
-		v4l_info(state->client, "Detected: PAL B/PAL G/PAL H/PAL I/PAL D");
-		break;
-	case 0x5:
-		v4l_info(state->client, "Detected: SECAM");
-		break;
-	case 0x6:
-		v4l_info(state->client, "Detected: PAL Combination N");
-		break;
-	case 0x7:
-		v4l_info(state->client, "Detected: SECAM 525");
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static int __adv7180_status(struct adv7180_state *state, u32 *status,
 			    v4l2_std_id *std)
 {
+	int autodetect_res = 0;
 	int status1 = adv7180_read(state, ADV7180_REG_STATUS1);
+
+	v4l_info(state->client, "Read status1 reg: %d\n", status1);
 
 	if (status1 < 0)
 		return status1;
 
-	v4l_info(state->client, "Reg status1: 0x%x\n", status1);
-	adv7182_dump_status(state, status1);
+	autodetect_res = adv7180_std_to_v4l2(state, status1);
+	if (autodetect_res > 0) {
+		state->curr_norm = autodetect_res;
+		v4l_info(state->client, "Update std: %lld\n", state->curr_norm);
+	}
 
 	if (status)
 		*status = adv7180_status_to_v4l2(status1);
 	if (std)
-		*std = adv7180_std_to_v4l2(status1);
+		*std = state->curr_norm;
 
 	return 0;
 }
@@ -500,6 +478,7 @@ static int adv7180_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
 	if (ret < 0)
 		goto out;
 
+	v4l_info(state->client, "Set std: %lld\n", std);
 	state->curr_norm = std;
 
 	ret = adv7180_program_std(state);
@@ -535,6 +514,7 @@ static int adv7180_g_frame_interval(struct v4l2_subdev *sd,
 		fi->interval.numerator = 1;
 		fi->interval.denominator = 25;
 	}
+	v4l_info(state->client, "Set new frame interval\n");
 
 	return 0;
 }
@@ -729,6 +709,8 @@ static int adv7180_mbus_fmt(struct v4l2_subdev *sd,
 	fmt->width = 720;
 	fmt->height = state->curr_norm & V4L2_STD_525_60 ? 480 : 576;
 
+	v4l_info(state->client, "Set resolution: %dx%d\n", fmt->width, fmt->height);
+
 	return 0;
 }
 
@@ -771,6 +753,7 @@ static int adv7180_set_field_mode(struct adv7180_state *state)
 		adv7180_vpp_write(state, ADV7180_REG_I2C_DEINT_ENABLE, 0x00);
 	}
 
+	__adv7180_status(state, NULL, NULL);
 	return 0;
 }
 
@@ -889,6 +872,8 @@ static int adv7180_g_pixelaspect(struct v4l2_subdev *sd, struct v4l2_fract *aspe
 		aspect->numerator = 54;
 		aspect->denominator = 59;
 	}
+
+	v4l_info(state->client, "Set new pixel aspect\n");
 
 	return 0;
 }
@@ -1033,7 +1018,6 @@ static int adv7180_select_input(struct adv7180_state *state, unsigned int input)
 static int adv7182_set_std(struct adv7180_state *state, unsigned int std)
 {
 	std = ADV7180_STD_AD_PAL_BG_NTSC_J_SECAM;
-	v4l_err(state->client, "Set std: 0x%x\n", std << 4);
 	return adv7180_write(state, ADV7182_REG_INPUT_VIDSEL, std << 4);
 }
 
@@ -1445,7 +1429,12 @@ static int adv7180_probe(struct i2c_client *client,
 
 	state->irq = client->irq;
 	mutex_init(&state->mutex);
-	state->curr_norm = V4L2_STD_PAL;  //V4L2_STD_NTSC;
+
+	/* Keep value hard-coded as we cannot support NTSC cameras
+	 * when we don't set it at that particular time
+	 */
+	state->curr_norm = V4L2_STD_NTSC;
+
 	if (state->chip_info->flags & ADV7180_FLAG_RESET_POWERED)
 		state->powered = true;
 	else
