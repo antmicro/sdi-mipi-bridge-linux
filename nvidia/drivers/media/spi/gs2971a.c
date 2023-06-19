@@ -40,34 +40,6 @@ struct gs2971a_priv {
 	u32				height;
 };
 
-static int gs2971a_enable_sdi_level_conversion(struct spi_device *spi)
-{
-	struct spi_message msg;
-	struct spi_transfer spi_xfer = {};
-	u8 data[4];
-	int ret;
-
-	data[0] = 0x00;
-	data[1] = 0x01;
-	data[2] = 0x00;
-	data[3] = 0x00;
-
-	spi_xfer.tx_buf = data;
-	spi_xfer.len = 4;
-
-	spi_message_init(&msg);
-	spi_message_add_tail(&spi_xfer, &msg);
-
-	ret = spi_sync(spi, &msg);
-
-	if (ret) {
-		dev_err(&spi->dev, "unable to set SDI level conversion!\n");
-		return ret;
-	}
-
-	return 0;
-}
-
 static int gs2971a_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 		struct v4l2_event_subscription *sub)
 {
@@ -94,15 +66,6 @@ static int gs2971a_g_mbus_config(struct v4l2_subdev *sd,
 
 static int gs2971a_s_stream(struct v4l2_subdev *sd, int enable)
 {
-	struct spi_device *spi = v4l2_get_subdevdata(sd);
-	int ret;
-
-	if (enable) {
-		ret = gs2971a_enable_sdi_level_conversion(spi);
-		if (ret) {
-			return ret;
-		}
-	}
 	return 0;
 }
 
@@ -252,15 +215,6 @@ static int gs2971a_probe(struct spi_device *spi)
 			GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
-
-	spi->mode = SPI_MODE_0;
-	spi->bits_per_word = 8;
-	spi->irq = -1;
-	ret = spi_setup(spi);
-	if (ret) {
-		dev_err(&spi->dev, "unable to setup SPI!\n");
-		return ret;
-	}
 
 	priv->subdev = &common_data->subdev;
 	priv->subdev->ctrl_handler = &priv->hdl;

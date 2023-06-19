@@ -30,7 +30,7 @@
 				vi_port0: port@0 {
 					reg = <0>;
 					gs2971a_vi_in0: endpoint {
-						port-index = <4>;
+						port-index = <0>;
 						bus-width = <2>;
 						remote-endpoint = <&gs2971a_csi_out0>;
 					};
@@ -50,7 +50,7 @@
 					csi_chan0_port0: port@0 {
 						reg = <0>;
 						gs2971a_csi_in0: endpoint@0 {
-							port-index = <4>;
+							port-index = <0>;
 							bus-width = <2>;
 							remote-endpoint = <&gs2971a_out0>;
 						};
@@ -88,7 +88,7 @@
 					#address-cells = <1>;
 					#size-cells = <0>;
 
-					nxp,spi-cs-as-gpios = <0 0 1 0>;
+					nxp,spi-cs-as-gpios = <0 1 0 0>;
 					gpio-controller;
 					#gpio-cells = <2>;
 
@@ -105,7 +105,7 @@
 							port@0 {
 								reg = <0>;
 								gs2971a_out0: endpoint {
-									port-index = <4>;
+									port-index = <0>;
 									bus-width = <2>;
 									remote-endpoint = <&gs2971a_csi_in0>;
 								};
@@ -153,7 +153,7 @@
 				fpga0: lattice-crosslink@40 {
 					compatible = "lattice,crosslink-fpga-mgr";
 					reg = <0x40>;
-					reset-gpios = <&sc18is603 2 GPIO_ACTIVE_LOW>;
+					reset-gpios = <&sc18is603 1 GPIO_ACTIVE_LOW>;
 				};
 			};
 		};
