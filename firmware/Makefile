@@ -136,7 +136,9 @@ fw-shipped-$(CONFIG_USB_VICAM) += vicam/firmware.fw
 fw-shipped-$(CONFIG_VIDEO_CPIA2) += cpia2/stv0672_vp4.bin
 fw-shipped-$(CONFIG_YAM) += yam/1200.bin yam/9600.bin
 
+fw-shipped-m += sdi_bridge/sdi_bridge_1080p25.bit
 fw-shipped-m += sdi_bridge/sdi_bridge_1080p30.bit
+fw-shipped-m += sdi_bridge/sdi_bridge_1080p50.bit
 fw-shipped-m += sdi_bridge/sdi_bridge_1080p60.bit
 
 fw-shipped-all := $(fw-shipped-y) $(fw-shipped-m) $(fw-shipped-)
